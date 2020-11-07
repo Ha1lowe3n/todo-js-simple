@@ -23,23 +23,26 @@ class Todo {
     }
 
     createElement(item) {
-        const li = document.createElement('li');
-        li.classList.add('todo-item');
-        li.key = item.key;
-        li.completed = item.completed;
-        li.insertAdjacentHTML('beforeend', `
-          <span class="text-todo">${item.value}</span>
-          <div class="todo-buttons">
-            <button class="todo-remove"></button>
-            <button class="todo-complete"></button>
-          </div>
-        `);
+      const li = document.createElement('li');
+      li.classList.add('todo-item');
+      li.key = item.key;
+      li.completed = item.completed;
+      li.value = item.value;
+      li.style.opacity = 1;
+      li.insertAdjacentHTML('beforeend', `
+        <span class="text-todo">${item.value}</span>
+        <div class="todo-buttons">
+          <button class="todo-edit"></button>
+          <button class="todo-remove"></button>
+          <button class="todo-complete"></button>
+        </div>
+      `);
 
-        if (item.completed) {
-          this.todoCompleted.append(li);
-        } else {
-          this.todoList.append(li);  
-        }
+      if (item.completed) {
+        this.todoCompleted.append(li);
+      } else {
+        this.todoList.append(li);  
+      }
     }
 
     generateKey() {
@@ -47,15 +50,28 @@ class Todo {
       Math.random().toString(36).substring(2, 15);
     }
 
+    animate(target) {
+      let value = parseFloat(target.style.opacity);
+
+      const request = setInterval(() => {
+          if (value <= 0) {
+            clearInterval(request); 
+            this.addToStorage();
+            this.render();
+          }
+  
+          value -= 0.1;
+          target.style.opacity = value;
+      }, 50);   
+  }
 
     deleteItem(target) {
       this.todoData.forEach(item => {
         if (target.key === item.key) {
           this.todoData.delete(item.key);
         }
-        
-        this.addToStorage();
-        this.render();
+
+        this.animate(target);
       });
     }
 
@@ -69,6 +85,21 @@ class Todo {
           } 
         }
 
+        this.animate(target);
+      });
+    }
+
+    editItem(target) {
+      this.todoData.forEach(item => {
+        if (target.key === item.key) {
+          if (target.children[0].textContent.trim() !== '') {
+            item.value = target.children[0].textContent;
+          } else {
+            alert('Вы оставили поле пустым!');
+          }
+          
+        }
+
         this.addToStorage();
         this.render();
       });
@@ -76,12 +107,21 @@ class Todo {
 
     handler() {
       this.todoContainer.addEventListener('click', (e) => {
-        const target = e.target;
+        const target = e.target,
+              parent = target.closest('.todo-item');
 
         if (target.matches('.todo-remove')) {
-          this.deleteItem(target.closest('.todo-item'));
+          this.deleteItem(parent);
+
         } else if (target.matches('.todo-complete')) {
-          this.completedItem(target.closest('.todo-item'));
+          this.completedItem(parent);
+
+        } else if (target.matches('.todo-edit')) {
+          parent.setAttribute('contenteditable', true);
+
+          parent.addEventListener('blur', () => {
+            this.editItem(parent);
+          });
         }
       });
     }
